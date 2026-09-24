@@ -1,0 +1,11 @@
+.env
+.env.*
+!.env.example
+*.credentials
+*.cred
+/secrets/
+__pycache__/
+*.py[cod]
+.venv/
+*.sqlite3
+staticfiles/

@@ -1,0 +1,93 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block breadcrumbs %}
+  <div class="breadcrumbs">
+    <a href="{% url 'admin:index' %}">الرئيسية</a>
+    <span aria-hidden="true">›</span>
+    <a href="{{ users_url }}">المستخدمون</a>
+    <span aria-hidden="true">›</span>
+    <span aria-current="page">مصادقة Active Directory</span>
+  </div>
+{% endblock %}
+
+{% block content %}
+  <main class="portal-admin-page">
+    <section class="portal-admin-hero">
+      <div>
+        <h1>مصادقة Active Directory</h1>
+        <p>راجع إعداد الربط واختبر بيانات حساب AD. كلمة المرور تُستخدم أثناء الطلب فقط ولا تُحفظ في البوابة.</p>
+      </div>
+      {% if status.ready %}
+        <span class="portal-status portal-status--ok">الإعداد جاهز للاختبار</span>
+      {% else %}
+        <span class="portal-status portal-status--bad">الإعداد غير مكتمل</span>
+      {% endif %}
+    </section>
+
+    <section class="portal-admin-section">
+      <h2>إعدادات الاتصال</h2>
+      <div class="portal-admin-grid">
+        <div class="portal-admin-stat"><strong>خادم LDAP</strong><span>{{ status.server }}</span></div>
+        <div class="portal-admin-stat"><strong>النطاق</strong><span>{{ status.domain }}</span></div>
+        <div class="portal-admin-stat"><strong>النقل والمنفذ</strong><span>{{ status.transport }} · {{ status.port }}</span></div>
+        <div class="portal-admin-stat"><strong>Base DN للبحث</strong><span>{{ status.base_dn }}</span></div>
+        <div class="portal-admin-stat"><strong>طريقة المصادقة</strong><span>{{ status.auth_method }}</span></div>
+        <div class="portal-admin-stat"><strong>التحقق من شهادة TLS</strong><span>{{ status.certificate_validation }}</span></div>
+      </div>
+      <p class="portal-admin-note">تُنفّذ محاولة المصادقة عند إرسال النموذج فقط. جاهزية الإعداد لا تعني فحص الخادم تلقائيًا.</p>
+    </section>
+
+    <section class="portal-admin-section">
+      <h2>اختبار حساب</h2>
+      <p class="portal-admin-note">هذا الاختبار يتحقق من حساب AD ولا ينشئ جلسة دخول للمعلم. لا تضع كلمة المرور في ملاحظات أو سجلات.</p>
+      {% if messages %}
+        <ul class="messagelist">
+          {% for message in messages %}<li class="{{ message.tags }}">{{ message }}</li>{% endfor %}
+        </ul>
+      {% endif %}
+      <form method="post" class="portal-admin-form" autocomplete="off">
+        {% csrf_token %}
+        {% if form.non_field_errors %}<div class="errornote">{{ form.non_field_errors }}</div>{% endif %}
+        <div class="field">
+          {{ form.username.label_tag }}
+          {{ form.username }}
+          {{ form.username.errors }}
+        </div>
+        <div class="field">
+          {{ form.password.label_tag }}
+          {{ form.password }}
+          {{ form.password.errors }}
+        </div>
+        <div class="submit-row">
+          <button type="submit" class="portal-admin-button" {% if not status.ready %}disabled{% endif %}>اختبر المصادقة</button>
+          <span class="portal-admin-note">النتيجة لا تكشف ما إذا كان اسم الحساب موجودًا عند فشل الدخول.</span>
+        </div>
+      </form>
+    </section>
+
+    <section class="portal-admin-section">
+      <h2>أحدث محاولات المصادقة</h2>
+      <table class="portal-admin-table">
+        <thead><tr><th>الوقت</th><th>المستخدم</th><th>النتيجة</th><th>السبب</th></tr></thead>
+        <tbody>
+          {% for attempt in recent_attempts %}
+            <tr>
+              <td>{{ attempt.created_at|date:"Y-m-d H:i" }}</td>
+              <td>{{ attempt.username }}</td>
+              <td>{% if attempt.success %}<span class="portal-status portal-status--ok">نجاح</span>{% else %}<span class="portal-status portal-status--bad">فشل</span>{% endif %}</td>
+              <td>{{ attempt.reason|default:"—" }}</td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="4">لا توجد محاولات مسجلة.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <div class="portal-admin-actions">
+        <a href="{{ users_url }}">إدارة المستخدمين</a>
+        <a href="{{ attempts_url }}">فتح سجل المحاولات</a>
+        <a href="/">العودة لبوابة الدخول</a>
+      </div>
+    </section>
+  </main>
+{% endblock %}

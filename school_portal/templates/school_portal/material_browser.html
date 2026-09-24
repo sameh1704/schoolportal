@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ resource_name }}</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { margin: 0; font-family: "Tahoma", "Segoe UI", sans-serif; background: #f5f8fc; color: #14233b; }
+        .page { max-width: 1120px; margin: 0 auto; padding: 28px 18px 56px; }
+        .topbar { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 20px 24px; margin-bottom: 20px; color: #fff; background: linear-gradient(120deg, #123a78, #1762b6); border-radius: 16px; }
+        .topbar h1 { margin: 0; font-size: 1.45rem; }
+        .topbar a { color: #fff; font-weight: 700; text-decoration: none; }
+        .panel { padding: 22px; background: #fff; border: 1px solid #e2eaf4; border-radius: 16px; box-shadow: 0 8px 24px rgba(20, 45, 82, .06); }
+        .path { margin: 0 0 16px; color: #64748b; overflow-wrap: anywhere; }
+        .item { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 14px 4px; border-bottom: 1px solid #edf1f6; }
+        .item:last-child { border-bottom: 0; }
+        .item a { color: #164f9d; text-decoration: none; font-weight: 700; overflow-wrap: anywhere; }
+        .kind { color: #64748b; font-size: .9rem; }
+        .empty { padding: 20px 4px; color: #64748b; }
+        @media (max-width: 600px) { .topbar { align-items: flex-start; flex-direction: column; } .panel { padding: 16px; } }
+    </style>
+</head>
+<body>
+    <main class="page">
+        <header class="topbar">
+            <h1>{{ resource_name }}</h1>
+            <nav><a href="{% url 'dashboard' %}">العودة للمواد</a> &nbsp;|&nbsp; <a href="{% url 'logout' %}">تسجيل الخروج</a></nav>
+        </header>
+        <section class="panel">
+            <p class="path">{% if current_path %}{{ current_path }}{% else %}المجلد الرئيسي{% endif %}</p>
+            {% if not is_root %}
+                <div class="item"><a href="?root={{ root_index }}&amp;path={{ parent_path|urlencode }}">↰ المجلد السابق</a></div>
+            {% endif %}
+            {% for entry in entries %}
+                <div class="item">
+                    <span>
+                        {% if entry.is_dir %}
+                            <a href="?root={{ root_index }}&amp;path={{ entry.relative_path|urlencode }}">📁 {{ entry.name }}</a>
+                        {% else %}
+                            <a href="{% url 'material_download' %}?root={{ root_index }}&amp;path={{ entry.relative_path|urlencode }}">📄 {{ entry.name }}</a>
+                        {% endif %}
+                    </span>
+                    <span class="kind">{% if entry.is_dir %}مجلد{% else %}{{ entry.mime }}{% endif %}</span>
+                </div>
+            {% empty %}
+                <div class="empty">لا توجد ملفات أو مجلدات في هذا المسار.</div>
+            {% endfor %}
+        </section>
+    </main>
+</body>
+</html>

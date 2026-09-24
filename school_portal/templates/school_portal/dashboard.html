@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>المواد المتاحة</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            background: #f8fafc;
+            font-family: "Tahoma", "Segoe UI", sans-serif;
+            color: #0f172a;
+        }
+        .page { max-width: 1200px; margin: 0 auto; padding: 32px 22px 60px; }
+        .topbar {
+            background: linear-gradient(135deg, #0b3d91, #1d4ed8);
+            color: white;
+            border-radius: 20px;
+            padding: 24px 28px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 28px;
+        }
+        h1 { margin: 0; font-size: 2rem; }
+        .logout {
+            text-decoration: none;
+            background: rgba(255,255,255,0.12);
+            color: white;
+            padding: 14px 18px;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 1.1rem;
+        }
+        .panel {
+            background: white;
+            border-radius: 18px;
+            padding: 28px 24px;
+            box-shadow: 0 12px 30px rgba(15,23,42,0.08);
+            margin-bottom: 28px;
+        }
+        .welcome {
+            font-size: 2rem;
+            color: #0f172a;
+            margin-bottom: 12px;
+        }
+        .info {
+            color: #475569;
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+        }
+        .resource-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 18px;
+        }
+        .resource {
+            background: linear-gradient(180deg, #f8fbff, #edf3ff);
+            border: 2px solid #dbeafe;
+            border-radius: 18px;
+            padding: 22px 18px;
+            text-align: center;
+        }
+        .resource h2 {
+            margin: 0 0 20px;
+            font-size: 1.7rem;
+            color: #0b3d91;
+        }
+        .resource a {
+            display: block;
+            text-decoration: none;
+            background: #0b3d91;
+            color: white;
+            padding: 16px 18px;
+            border-radius: 12px;
+            font-size: 1.15rem;
+            font-weight: 700;
+        }
+        .empty {
+            color: #64748b;
+            font-size: 1.1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="page">
+        <div class="topbar">
+            <h1>بوابة المدرسة</h1>
+            <a class="logout" href="{% url 'logout' %}">تسجيل الخروج</a>
+        </div>
+
+        <div class="panel">
+            <div class="welcome">مرحبًا، {{ display_name }}</div>
+            <div class="info">المواد المتاحة لك:</div>
+
+            {% if resources %}
+                <div class="resource-grid">
+                    {% for resource in resources %}
+                        <div class="resource">
+                            <h2>{{ resource.name }}</h2>
+                            <a href="{% url 'material_browser' %}?root={{ resource.root_index }}">فتح</a>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty">
+                    {% if share_mapping_configured %}
+                        لم يتم العثور على مادة مرتبطة بمجموعات حسابك في إعدادات البوابة. يرجى مراجعة مسؤول النظام.
+                    {% else %}
+                        لم يتم إعداد ربط مواد Active Directory في البوابة بعد. صلاحيات المشاركة لم تتغير؛ يلزم ربط مجموعة AD بمسار المادة.
+                    {% endif %}
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>

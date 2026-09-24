@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>بوابة المدرسة</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #eff6ff, #f8fafc);
+            font-family: "Tahoma", "Segoe UI", sans-serif;
+            color: #0f172a;
+        }
+        .login-card {
+            width: min(560px, 92vw);
+            background: white;
+            border-radius: 24px;
+            box-shadow: 0 24px 60px rgba(15, 23, 42, 0.12);
+            padding: 38px 32px;
+        }
+        .brand {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .logo {
+            width: 84px;
+            height: 84px;
+            border-radius: 18px;
+            margin: 0 auto 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.4rem;
+            background: linear-gradient(135deg, #0b3d91, #2563eb);
+            color: white;
+        }
+        h1 {
+            margin: 0;
+            font-size: 2.3rem;
+            color: #0b3d91;
+        }
+        .subtext {
+            color: #475569;
+            font-size: 1.1rem;
+            margin: 10px 0 28px;
+            text-align: center;
+        }
+        form {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .field {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            text-align: right;
+            font-weight: 600;
+        }
+        input {
+            width: 100%;
+            padding: 20px 18px;
+            font-size: 1.2rem;
+            border: 2px solid #cbd5e1;
+            border-radius: 14px;
+            outline: none;
+        }
+        input:focus {
+            border-color: #2563eb;
+            box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+        }
+        button {
+            width: 100%;
+            border: none;
+            border-radius: 14px;
+            padding: 20px 18px;
+            font-size: 1.3rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #0b3d91, #2563eb);
+            color: white;
+            cursor: pointer;
+        }
+        .error-box {
+            background: #fef2f2;
+            border: 1px solid #fca5a5;
+            color: #991b1b;
+            border-radius: 12px;
+            padding: 14px 16px;
+            font-size: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-card">
+        <div class="brand">
+            <div class="logo">🏫</div>
+            <h1>بوابة المدرسة</h1>
+        </div>
+        <div class="subtext">تسجيل الدخول باستخدام حساب Active Directory</div>
+
+        {% if form.errors %}
+            <div class="error-box">
+                {% for error in form.non_field_errors %}
+                    {{ error }}
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <form method="post" autocomplete="on">
+            {% csrf_token %}
+            <div class="field">
+                {{ form.username.label_tag }}
+                {{ form.username }}
+            </div>
+            <div class="field">
+                {{ form.password.label_tag }}
+                {{ form.password }}
+            </div>
+            <button type="submit">دخول</button>
+        </form>
+    </div>
+</body>
+</html>

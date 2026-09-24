@@ -1,0 +1,40 @@
+{% extends "admin/change_list.html" %}
+
+{% block extrastyle %}
+  {{ block.super }}
+  <style>
+    .portal-user-overview { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)) minmax(210px, 1.3fr); gap: 12px; margin: 0 0 20px; }
+    .portal-user-card { min-height: 88px; padding: 16px 18px; border: 1px solid var(--hairline-color, #dce5f1); border-radius: 12px; background: var(--body-bg, #fff); }
+    .portal-user-card small { display: block; margin-bottom: 8px; color: var(--body-quiet-color, #64748b); font-size: 12px; }
+    .portal-user-card strong { color: var(--body-fg, #172b4d); font-size: 24px; }
+    .portal-user-card--action { display: flex; flex-direction: column; justify-content: center; background: #eef5ff; }
+    .portal-user-card--action a { color: var(--link-fg, #174ea6); font-weight: 700; text-decoration: none; }
+    .portal-user-card--action span { margin-top: 5px; color: #64748b; font-size: 12px; }
+    @media (max-width: 900px) { .portal-user-overview { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    @media (max-width: 520px) { .portal-user-overview { grid-template-columns: 1fr; } }
+  </style>
+{% endblock %}
+
+{% block content %}
+  <div class="portal-admin-page">
+    <section class="portal-admin-hero">
+      <div>
+        <h1>إدارة حسابات البوابة</h1>
+        <p>ابحث عن الحسابات المحلية، راجع حالتها ومجموعاتها، وافتح سجل المصادقة عند الحاجة.</p>
+      </div>
+      <span class="portal-status portal-status--neutral">إدارة المستخدمين</span>
+    </section>
+
+    <div class="portal-user-overview" aria-label="ملخص الحسابات">
+      <div class="portal-user-card"><small>إجمالي الحسابات</small><strong>{{ user_summary.total|default:0 }}</strong></div>
+      <div class="portal-user-card"><small>حسابات نشطة</small><strong>{{ user_summary.active|default:0 }}</strong></div>
+      <div class="portal-user-card"><small>حسابات موظفين</small><strong>{{ user_summary.staff|default:0 }}</strong></div>
+      <a class="portal-user-card portal-user-card--action" href="{% url 'admin_authentication' %}">
+        <strong style="font-size:16px">صفحة مصادقة AD</strong>
+        <span>فحص إعداد الاتصال وتجربة حساب دون حفظ كلمة المرور</span>
+      </a>
+    </div>
+
+    {{ block.super }}
+  </div>
+{% endblock %}

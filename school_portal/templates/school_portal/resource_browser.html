@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ resource_name }}</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { margin: 0; font-family: "Tahoma","Segoe UI",sans-serif; background: #f8fafc; color: #0f172a; }
+        .page { max-width: 1260px; margin: 0 auto; padding: 28px 20px 60px; }
+        .topbar {
+            background: linear-gradient(135deg, #0b3d91, #1d4ed8);
+            color: white;
+            border-radius: 18px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 18px 24px;
+            margin-bottom: 24px;
+        }
+        .nav a { color: white; text-decoration: none; font-weight: 700; }
+        .panel { background: white; border-radius: 18px; box-shadow: 0 12px 30px rgba(15,23,42,0.08); padding: 22px; }
+        .breadcrumb { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 18px; color: #475569; font-size: 1rem; }
+        .crumb { color: #0b3d91; font-weight: 700; }
+        .item-list { list-style: none; margin: 0; padding: 0; }
+        .item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            padding: 16px 12px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .item:last-child { border-bottom: none; }
+        .name { font-size: 1.1rem; font-weight: 700; }
+        .meta { color: #64748b; font-size: 0.95rem; margin-top: 5px; }
+        .action {
+            display: inline-block;
+            text-decoration: none;
+            background: #0b3d91;
+            color: white;
+            padding: 12px 16px;
+            border-radius: 10px;
+            font-weight: 700;
+            min-width: 160px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="page">
+        <div class="topbar">
+            <h2 style="margin: 0;">{{ resource_name }}</h2>
+            <div class="nav">
+                <a href="{% url 'dashboard' %}">العودة</a>
+                &nbsp;|&nbsp;
+                <a href="{% url 'logout' %}">تسجيل الخروج</a>
+            </div>
+        </div>
+
+        <div class="panel">
+            <div class="breadcrumb">
+                <span class="crumb">Home</span>
+                {% for crumb in breadcrumbs %}
+                    <span>›</span>
+                    <span class="crumb">{{ crumb.label }}</span>
+                {% endfor %}
+            </div>
+
+            <ul class="item-list">
+                {% for entry in entries %}
+                    <li class="item">
+                        <div>
+                            <div class="name">{% if entry.is_dir %}📁{% else %}{% if entry.name|slice:'-4' == '.pdf' %}📄{% elif entry.name|slice:'-5' == '.pptx' or entry.name|slice:'-4' == '.ppt' %}📊{% elif entry.name|slice:'-5' == '.docx' or entry.name|slice:'-4' == '.doc' %}📝{% elif entry.name|slice:'-5' == '.xlsx' or entry.name|slice:'-4' == '.xls' %}📊{% elif entry.name|slice:'-4' == '.mp4' or entry.name|slice:'-5' == '.webm' %}🎬{% elif entry.name|slice:'-4' == '.png' or entry.name|slice:'-4' == '.jpg' or entry.name|slice:'-4' == '.gif' %}🖼{% else %}📄{% endif %} {% endif %}{{ entry.name }}</div>
+                            <div class="meta">{% if entry.is_dir %}Folder{% else %}{{ entry.mime }}{% endif %}</div>
+                        </div>
+                        <a class="action" href="{{ entry.path }}" target="_blank" rel="noopener noreferrer">{% if entry.is_dir %}فتح المجلد{% else %}{{ entry.open_label }}{% endif %}</a>
+                    </li>
+                {% empty %}
+                    <li class="item">
+                        <div class="name">لا توجد ملفات أو مجلدات داخل هذا المجلد.</div>
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+</body>
+</html>
