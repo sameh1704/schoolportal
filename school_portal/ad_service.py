@@ -72,10 +72,12 @@ def authenticate_ad_user(username: str, password: str, domain: str | None = None
     if auth_method not in {"NTLM", "SIMPLE"}:
         raise RuntimeError("AD_AUTH_METHOD must explicitly be NTLM or SIMPLE before password authentication.")
 
+    ca_certs_file = getattr(settings, "AD_LDAP_CA_CERTS_FILE", "") or None
+    tls_validate = ssl.CERT_REQUIRED if ca_certs_file else ssl.CERT_NONE
     tls = Tls(
-        validate=ssl.CERT_REQUIRED,
+        ca_certs_file=ca_certs_file,
+        validate=tls_validate,
         valid_names=[getattr(settings, "AD_HOSTNAME", ldap_host)],
-        ca_certs_file=getattr(settings, "AD_LDAP_CA_CERTS_FILE", "") or None,
         sni=getattr(settings, "AD_HOSTNAME", ldap_host),
     )
     server = Server(ldap_host, port=port, use_ssl=(encryption == "ldaps"), tls=tls, get_info=None)

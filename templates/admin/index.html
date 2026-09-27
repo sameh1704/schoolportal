@@ -1,0 +1,83 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block content %}
+  <main class="admin-page">
+    <section class="admin-panel">
+      <header class="admin-topbar">
+        <h1>{{ site_header|default:"إدارة بوابة المدرسة" }}</h1>
+        <div class="nav-links">
+          <a href="{% url 'admin_authentication' %}">مصادقة AD</a>
+          <a href="/">العودة للبوابة</a>
+        </div>
+      </header>
+
+      <div class="welcome" style="font-size: 2rem; color: #0f172a; margin-bottom: 12px;">مرحبًا، {{ user.get_username }}</div>
+      <div class="info" style="color: #64748b; font-size: 1.2rem; margin-bottom: 20px;">لوحة تحكم الإدارة — إدارة المستخدمين، مراجعة السجلات، وإعدادات النظام.</div>
+    </section>
+
+    <section class="admin-panel">
+      <h2>الإحصائيات السريعة</h2>
+      <div class="admin-grid">
+        <div class="admin-stat"><strong>إجمالي المستخدمين</strong><span>{{ user_counts.total|default:0 }}</span></div>
+        <div class="admin-stat"><strong>المستخدمون النشطون</strong><span>{{ user_counts.active|default:0 }}</span></div>
+        <div class="admin-stat"><strong>الموظفون (Staff)</strong><span>{{ user_counts.staff|default:0 }}</span></div>
+        <div class="admin-stat"><strong>محاولات الدخول (اليوم)</strong><span>{{ login_attempts_today|default:0 }}</span></div>
+      </div>
+    </section>
+
+    <section class="admin-panel">
+      <h2>إجراءات سريعة</h2>
+      <div class="admin-actions" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 12px;">
+        <a href="{% url 'admin:auth_user_changelist' %}" style="text-align: center; padding: 20px;">
+          <div style="font-size: 2.5rem; margin-bottom: 8px;">👥</div>
+          <strong style="font-size: 1.1rem;">إدارة المستخدمين</strong>
+          <div style="color: #64748b; font-size: 0.9rem; margin-top: 4px;">عرض وتعديل حسابات البوابة</div>
+        </a>
+        <a href="{% url 'admin_authentication' %}" style="text-align: center; padding: 20px;">
+          <div style="font-size: 2.5rem; margin-bottom: 8px;">🔐</div>
+          <strong style="font-size: 1.1rem;">مصادقة Active Directory</strong>
+          <div style="color: #64748b; font-size: 0.9rem; margin-top: 4px;">اختبار إعدادات الاتصال بـ AD</div>
+        </a>
+        <a href="{% url 'admin:school_portal_auditloginattempt_changelist' %}" style="text-align: center; padding: 20px;">
+          <div style="font-size: 2.5rem; margin-bottom: 8px;">📋</div>
+          <strong style="font-size: 1.1rem;">سجل محاولات الدخول</strong>
+          <div style="color: #64748b; font-size: 0.9rem; margin-top: 4px;">مراجعة سجلات المصادقة</div>
+        </a>
+        <a href="{% url 'admin:school_portal_ousharemapping_changelist' %}" style="text-align: center; padding: 20px;">
+          <div style="font-size: 2.5rem; margin-bottom: 8px;">📁</div>
+          <strong style="font-size: 1.1rem;">ربط المواد (OU)</strong>
+          <div style="color: #64748b; font-size: 0.9rem; margin-top: 4px;">إدارة مسارات المشاركة للمجموعات</div>
+        </a>
+      </div>
+    </section>
+
+    <section class="admin-panel">
+      <h2>وحدات الإدارة</h2>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px;">
+        {% for app in app_list %}
+          <div style="border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; background: #f8fbff;">
+            <h3 style="margin: 0 0 12px; color: #0b3d91; font-size: 1.1rem;">{{ app.name }}</h3>
+            <ul style="margin: 0; padding: 0; list-style: none;">
+              {% for model in app.models %}
+                <li style="margin-bottom: 8px;">
+                  {% if model.admin_url %}
+                    <a href="{{ model.admin_url }}" style="color: #0b3d91; font-weight: 600; text-decoration: none;">{{ model.name }}</a>
+                  {% else %}
+                    <span style="color: #64748b;">{{ model.name }}</span>
+                  {% endif %}
+                  {% if model.add_url %}
+                    <a href="{{ model.add_url }}" style="margin-right: 12px; color: #0b3d91; font-size: 0.85rem; text-decoration: none;">إضافة</a>
+                  {% endif %}
+                  {% if model.admin_url %}
+                    <a href="{{ model.admin_url }}" style="color: #0b3d91; font-size: 0.85rem; text-decoration: none;">تغيير</a>
+                  {% endif %}
+                </li>
+              {% endfor %}
+            </ul>
+          </div>
+        {% endfor %}
+      </div>
+    </section>
+  </main>
+{% endblock %}

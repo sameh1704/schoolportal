@@ -12,7 +12,7 @@ from django.views.decorators.http import require_safe
 from .ad_service import authenticate_ad_user, parse_username
 from .file_access import detect_display_os
 from .forms import ADLoginForm
-from .models import AuditLoginAttempt
+from .models import AuditLoginAttempt, OUShareMapping
 from .ou_access import allowed_paths_for_ou, ou_resources, resolve_ou_request_path
 
 
@@ -103,7 +103,7 @@ def dashboard_view(request):
     ad_user = request.session.get("ad_user", {})
     resources = ou_resources(
         ad_user.get("ou", ""),
-        getattr(settings, "OU_SUBJECT_MAP", {}),
+        OUShareMapping.get_ou_subject_map(),
         settings.SHARE_MOUNT_ROOT,
     )
     display_os = detect_display_os(request.session.get("display_os") or os.getenv("DISPLAY_OS") or os.getenv("INTERACTIVE_DISPLAY_OS") or getattr(settings, "DISPLAY_OS", "windows"))
@@ -115,7 +115,7 @@ def dashboard_view(request):
             "display_name": ad_user.get("display_name") or ad_user.get("username") or "Teacher",
             "username": ad_user.get("username") or "teacher",
             "resources": resources,
-            "share_mapping_configured": bool(getattr(settings, "OU_SUBJECT_MAP", {})),
+            "share_mapping_configured": bool(OUShareMapping.get_ou_subject_map()),
             "display_os": display_os,
         },
     )
@@ -125,7 +125,7 @@ def _requested_material_path(request):
     ad_user = request.session.get("ad_user", {})
     allowed_roots = allowed_paths_for_ou(
         ad_user.get("ou", ""),
-        getattr(settings, "OU_SUBJECT_MAP", {}),
+        OUShareMapping.get_ou_subject_map(),
         settings.SHARE_MOUNT_ROOT,
     )
     return resolve_ou_request_path(

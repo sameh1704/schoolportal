@@ -13,7 +13,9 @@ RUN apt-get update \
     && groupadd --gid "${APP_GID}" app \
     && useradd --uid "${APP_UID}" --gid "${APP_GID}" --home-dir /app --no-create-home --shell /usr/sbin/nologin app \
     && mkdir -p /app/shares \
-    && chmod 0755 /app/shares
+    && chmod 0755 /app/shares \
+    && mkdir -p /app/staticfiles \
+    && chown app:app /app/staticfiles
 
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt

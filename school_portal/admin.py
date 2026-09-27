@@ -4,7 +4,7 @@ from django.contrib.auth.admin import UserAdmin as DjangoUserAdmin
 from django.db.models import Count, Q
 from django.utils.html import format_html
 
-from .models import AuditLoginAttempt
+from .models import AuditLoginAttempt, OUShareMapping
 
 
 admin.site.site_header = "إدارة بوابة المدرسة"
@@ -83,3 +83,45 @@ class AuditLoginAttemptAdmin(admin.ModelAdmin):
 
     def has_delete_permission(self, request, obj=None):
         return False
+
+
+@admin.register(OUShareMapping)
+class OUShareMappingAdmin(admin.ModelAdmin):
+    list_display = ('ou_name', 'share_slug', 'display_name', 'share_path', 'is_active', 'created_at')
+    list_filter = ('is_active', 'created_at')
+    search_fields = ('ou_name', 'share_slug', 'display_name', 'description')
+    ordering = ('ou_name',)
+    list_per_page = 25
+    date_hierarchy = 'created_at'
+    list_editable = ('is_active',)
+    fieldsets = (
+        ('\u0645\u0639\u0644\u0648\u0645\u0627\u062a \u0627\u0644\u062a\u0639\u0631\u0641', {
+            'fields': ('ou_name', 'share_slug', 'is_active'),
+            'description': '\u0647\u0630\u0647 \u0627\u0644\u062d\u0642\u0648\u0644 \u0645\u0637\u0644\u0648\u0628\u0629 \u0648\u062a\u062d\u062f\u062f \u0631\u0628\u0637 OU \u0628\u0627\u0644\u0645\u0634\u0627\u0631\u0643\u0629.'
+        }),
+        ('\u0645\u0633\u0627\u0631 \u0627\u0644\u0645\u0634\u0627\u0631\u0643\u0629', {
+            'fields': ('share_path',),
+            'description': '\u0627\u0644\u0645\u0633\u0627\u0631 \u062f\u0627\u062e\u0644 \u0627\u0644\u062d\u0627\u0648\u064a\u0629 \u062d\u064a\u062b \u064a\u062a\u0645 mount \u0645\u0634\u0627\u0631\u0631\u0643\u0629 SMB.'
+        }),
+        ('\u0645\u0639\u0644\u0648\u0645\u0627\u062a \u0627\u0644\u0639\u0631\u0636', {
+            'fields': ('display_name', 'description'),
+            'description': '\u0645\u0639\u0644\u0648\u0645\u0627\u062a \u062a\u0638\u0647\u0631 \u0644\u0644\u0645\u0639\u0644\u0645 \u0641\u064a \u0644\u0648\u062d\u0629 \u0627\u062a\u062d\u0643\u0645 (\u0627\u062e\u062a\u064a\u0627\u0631\u064a\u0629).'
+        }),
+    )
+    readonly_fields = ('created_at', 'updated_at')
+    def get_form(self, request, obj=None, **kwargs):
+        form = super().get_form(request, obj, **kwargs)
+        form.base_fields['ou_name'].help_text = '\u0645\u062b\u0627\u0644: MATH-PRIM (\u0627\u0633\u0645 OU \u0643\u0645\u0627 \u064a\u0638\u0647\u0631 \u0641\u064a Active Directory)'
+        form.base_fields['share_slug'].help_text = '\u0645\u062b\u0627\u0644: math-prim (\u064a\u062c\u0628 \u0623\u0646 \u064a\u062a\u0637\u0627\u0628\u0642 \u0645\u0639 slug \u0641\u064a SMB_MOUNTS \u0628\u0627\u0644\u062c .env)'
+        form.base_fields['share_path'].help_text = '\u0645\u062b\u0627\u0644: /app/shares/math-prim (\u0645\u0633\u0627\u0631 mount \u062f\u0627\u062e\u0644 \u0627\u0644\u062d\u0627\u0648\u064a\u0629)'
+        form.base_fields['display_name'].help_text = '\u0645\u062b\u0627\u0644: \u0645\u0648\u0627\u062f \u0627\u0644\u0631\u064a\u0627\u0636\u064a\u0627\u062a \u0627\u0627\u0628\u062a\u062f\u0627\u0626\u064a\u0629 (\u0633\u064a\u0638\u0647\u0631 \u0641\u064a \u0648\u0627\u062c\u0647\u0629 \u0627\u0644\u0645\u0639\u0644\u0645)'
+        form.base_fields['description'].help_text = '\u0645\u062b\u0627\u0644: \u064a\u062d\u062a\u0648\u064a \u0639\u0644\u0649 \u0643\u062a\u0628 \u0627\u0644\u0637\u0627\u0644\u0628\u060c \u062f\u0644\u064a\u0644 \u0627\u0644\u0645\u0639\u0644\u0645\u060c \u0641\u064a\u062f\u064a\u0648\u0647\u0627\u062a \u062a\u0639\u0644\u0645\u064a\u0649\u0629\u060c \u0648\u0623\u0648\u0631\u0627\u0642 \u0639\u0645\u0644'
+        return form
+    def save_model(self, request, obj, form, change):
+        super().save_model(request, obj, form, change)
+        self.update_env_mappings()
+    def update_env_mappings(self):
+        mappings = OUShareMapping.objects.filter(is_active=True)
+        ou_map = {m.ou_name: [m.share_path] for m in mappings}
+        mounts = {m.share_slug: m.share_slug for m in mappings}
+        pass

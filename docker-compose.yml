@@ -2,7 +2,8 @@ services:
   portal-web:
     build: .
     container_name: portal-web
-    command: sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
+    privileged: true
+    command: ["gunicorn", "portal.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "2"]
     env_file:
       - .env
     environment:
@@ -10,15 +11,22 @@ services:
       SMB_MOUNTS: ${SMB_MOUNTS:-}
       SHARE_MOUNT_ROOT: ${SHARE_MOUNT_ROOT:-/app/shares}
     secrets:
-      - smb_credentials
+      - source: smb_credentials
+        target: /run/secrets/smb_credentials
+      - source: django_env
+        target: /run/secrets/django_env
     cap_add:
+      - CAP_DAC_OVERRIDE
       - SYS_ADMIN
     ports:
-      - "8000:8000"
+      - "8010:8000"
     depends_on:
-      - portal-db
+      portal-db:
+        condition: service_healthy
     volumes:
-      - .:/app
+      - schoolportal_static_volume:/app/staticfiles
+    networks:
+      - schoolportal_network
 
   portal-db:
     image: postgres:16-alpine
@@ -27,14 +35,28 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-portal}
       POSTGRES_USER: ${POSTGRES_USER:-portal}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-portal}
-    ports:
-      - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - schoolportal_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    networks:
+      - schoolportal_network
 
 volumes:
-  postgres_data:
+  schoolportal_postgres_data:
+    name: schoolportal_postgres_data
+  schoolportal_static_volume:
+    name: schoolportal_static_volume
+
+networks:
+  schoolportal_network:
+    name: schoolportal_network
 
 secrets:
   smb_credentials:
     file: ${SMB_CREDENTIALS_SOURCE:-./secrets.example}
+  django_env:
+    file: .env

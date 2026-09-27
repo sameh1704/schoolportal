@@ -12,41 +12,61 @@
 {% endblock %}
 
 {% block content %}
-  <main class="portal-admin-page">
-    <section class="portal-admin-hero">
-      <div>
+  <main class="admin-page">
+    <section class="admin-panel">
+      <header class="admin-topbar">
         <h1>مصادقة Active Directory</h1>
-        <p>راجع إعداد الربط واختبر بيانات حساب AD. كلمة المرور تُستخدم أثناء الطلب فقط ولا تُحفظ في البوابة.</p>
+        <div class="nav-links">
+          <a href="{{ users_url }}">إدارة المستخدمين</a>
+          <a href="{{ attempts_url }}">سجل المحاولات</a>
+          <a href="/">العودة لبوابة الدخول</a>
+        </div>
+      </header>
+
+      <div class="admin-breadcrumb">
+        <span class="crumb">الرئيسية</span>
+        <span>›</span>
+        <span class="crumb">المستخدمون</span>
+        <span>›</span>
+        <span class="crumb">مصادقة Active Directory</span>
       </div>
+
+      <div class="admin-grid">
+        <div class="admin-stat"><strong>حالة الإعداد</strong><span>{% if status.ready %}جاهز{% else %}غير مكتمل{% endif %}</span></div>
+        <div class="admin-stat"><strong>خادم LDAP</strong><span>{{ status.server }}</span></div>
+        <div class="admin-stat"><strong>النطاق</strong><span>{{ status.domain }}</span></div>
+        <div class="admin-stat"><strong>النقل</strong><span>{{ status.transport }} · {{ status.port }}</span></div>
+      </div>
+
       {% if status.ready %}
-        <span class="portal-status portal-status--ok">الإعداد جاهز للاختبار</span>
+        <span class="admin-status admin-status--ok">الإعداد جاهز للاختبار</span>
       {% else %}
-        <span class="portal-status portal-status--bad">الإعداد غير مكتمل</span>
+        <span class="admin-status admin-status--bad">الإعداد غير مكتمل</span>
       {% endif %}
     </section>
 
-    <section class="portal-admin-section">
+    <section class="admin-panel">
       <h2>إعدادات الاتصال</h2>
-      <div class="portal-admin-grid">
-        <div class="portal-admin-stat"><strong>خادم LDAP</strong><span>{{ status.server }}</span></div>
-        <div class="portal-admin-stat"><strong>النطاق</strong><span>{{ status.domain }}</span></div>
-        <div class="portal-admin-stat"><strong>النقل والمنفذ</strong><span>{{ status.transport }} · {{ status.port }}</span></div>
-        <div class="portal-admin-stat"><strong>Base DN للبحث</strong><span>{{ status.base_dn }}</span></div>
-        <div class="portal-admin-stat"><strong>طريقة المصادقة</strong><span>{{ status.auth_method }}</span></div>
-        <div class="portal-admin-stat"><strong>التحقق من شهادة TLS</strong><span>{{ status.certificate_validation }}</span></div>
+      <div class="admin-grid">
+        <div class="admin-stat"><strong>خادم LDAP</strong><span>{{ status.server }}</span></div>
+        <div class="admin-stat"><strong>النطاق</strong><span>{{ status.domain }}</span></div>
+        <div class="admin-stat"><strong>النقل والمنفذ</strong><span>{{ status.transport }} · {{ status.port }}</span></div>
+        <div class="admin-stat"><strong>Base DN للبحث</strong><span>{{ status.base_dn }}</span></div>
+        <div class="admin-stat"><strong>طريقة المصادقة</strong><span>{{ status.auth_method }}</span></div>
+        <div class="admin-stat"><strong>التحقق من شهادة TLS</strong><span>{{ status.certificate_validation }}</span></div>
       </div>
-      <p class="portal-admin-note">تُنفّذ محاولة المصادقة عند إرسال النموذج فقط. جاهزية الإعداد لا تعني فحص الخادم تلقائيًا.</p>
+      <p class="admin-note">تُنفّذ محاولة المصادقة عند إرسال النموذج فقط. جاهزية الإعداد لا تعني فحص الخادم تلقائيًا.</p>
     </section>
 
-    <section class="portal-admin-section">
+    <section class="admin-panel">
       <h2>اختبار حساب</h2>
-      <p class="portal-admin-note">هذا الاختبار يتحقق من حساب AD ولا ينشئ جلسة دخول للمعلم. لا تضع كلمة المرور في ملاحظات أو سجلات.</p>
+      <p class="admin-note">هذا الاختبار يتحقق من حساب AD ولا ينشئ جلسة دخول للمعلم. لا تضع كلمة المرور في ملاحظات أو سجلات.</p>
       {% if messages %}
         <ul class="messagelist">
           {% for message in messages %}<li class="{{ message.tags }}">{{ message }}</li>{% endfor %}
         </ul>
       {% endif %}
-      <form method="post" class="portal-admin-form" autocomplete="off">
+      <form method="post" class="admin-form" autocomplete="off">
         {% csrf_token %}
         {% if form.non_field_errors %}<div class="errornote">{{ form.non_field_errors }}</div>{% endif %}
         <div class="field">
@@ -60,22 +80,29 @@
           {{ form.password.errors }}
         </div>
         <div class="submit-row">
-          <button type="submit" class="portal-admin-button" {% if not status.ready %}disabled{% endif %}>اختبر المصادقة</button>
-          <span class="portal-admin-note">النتيجة لا تكشف ما إذا كان اسم الحساب موجودًا عند فشل الدخول.</span>
+          <button type="submit" class="admin-button" {% if not status.ready %}disabled{% endif %}>اختبر المصادقة</button>
+          <span class="admin-note">النتيجة لا تكشف ما إذا كان اسم الحساب موجودًا عند فشل الدخول.</span>
         </div>
       </form>
     </section>
 
-    <section class="portal-admin-section">
+    <section class="admin-panel">
       <h2>أحدث محاولات المصادقة</h2>
-      <table class="portal-admin-table">
-        <thead><tr><th>الوقت</th><th>المستخدم</th><th>النتيجة</th><th>السبب</th></tr></thead>
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>الوقت</th>
+            <th>المستخدم</th>
+            <th>النتيجة</th>
+            <th>السبب</th>
+          </tr>
+        </thead>
         <tbody>
           {% for attempt in recent_attempts %}
             <tr>
               <td>{{ attempt.created_at|date:"Y-m-d H:i" }}</td>
               <td>{{ attempt.username }}</td>
-              <td>{% if attempt.success %}<span class="portal-status portal-status--ok">نجاح</span>{% else %}<span class="portal-status portal-status--bad">فشل</span>{% endif %}</td>
+              <td>{% if attempt.success %}<span class="admin-status admin-status--ok">نجاح</span>{% else %}<span class="admin-status admin-status--bad">فشل</span>{% endif %}</td>
               <td>{{ attempt.reason|default:"—" }}</td>
             </tr>
           {% empty %}
@@ -83,7 +110,7 @@
           {% endfor %}
         </tbody>
       </table>
-      <div class="portal-admin-actions">
+      <div class="admin-actions">
         <a href="{{ users_url }}">إدارة المستخدمين</a>
         <a href="{{ attempts_url }}">فتح سجل المحاولات</a>
         <a href="/">العودة لبوابة الدخول</a>
