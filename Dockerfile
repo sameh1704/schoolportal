@@ -8,14 +8,15 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 WORKDIR /app
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends cifs-utils smbclient util-linux \
+    && apt-get install -y --no-install-recommends cifs-utils smbclient util-linux postgresql-client ffmpeg poppler-utils \
     && rm -rf /var/lib/apt/lists/* \
     && groupadd --gid "${APP_GID}" app \
     && useradd --uid "${APP_UID}" --gid "${APP_GID}" --home-dir /app --no-create-home --shell /usr/sbin/nologin app \
     && mkdir -p /app/shares \
     && chmod 0755 /app/shares \
     && mkdir -p /app/staticfiles \
-    && chown app:app /app/staticfiles
+    && mkdir -p /app/thumbnail_cache \
+    && chown app:app /app/staticfiles /app/thumbnail_cache
 
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt

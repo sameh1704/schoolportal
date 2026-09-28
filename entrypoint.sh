@@ -17,15 +17,73 @@ if [ -r "$DJANGO_ENV_FILE" ]; then
     chmod 0400 /app/.env
 fi
 
-if [ -n "${SMB_HOST:-}" ] || [ -n "${SMB_MOUNTS:-}" ]; then
+# Wait for database to be ready
+if [ -n "${POSTGRES_HOST:-}" ]; then
+    printf '[smb-mount] Waiting for database at %s:%s...\n' "${POSTGRES_HOST}" "${POSTGRES_PORT:-5432}"
+    for i in $(seq 1 30); do
+        if pg_isready -h "${POSTGRES_HOST}" -p "${POSTGRES_PORT:-5432}" -U "${POSTGRES_USER:-portal}" -d "${POSTGRES_DB:-portal}" >/dev/null 2>&1; then
+            printf '[smb-mount] Database is ready\n'
+            break
+        fi
+        sleep 1
+    done
+fi
+
+# Load SMB mounts from database if possible, otherwise fall back to .env
+load_smb_mounts_from_db() {
+    python3 -c "
+import os
+import sys
+import django
+
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'portal.settings')
+sys.path.insert(0, '/app')
+
+try:
+    django.setup()
+    from school_portal.models import OUShareMapping
+    
+    mappings = OUShareMapping.objects.filter(is_active=True)
+    mounts = []
+    for m in mappings:
+        creds = m.get_smb_credentials()
+        if creds:
+            mounts.append(f'{m.share_slug}={m.share_slug}:{creds[\"username\"]}:{creds[\"password\"]}:{creds[\"domain\"]}')
+        else:
+            mounts.append(f'{m.share_slug}={m.share_slug}')
+    
+    if mounts:
+        print('\n'.join(mounts))
+        sys.exit(0)
+    else:
+        sys.exit(1)
+except Exception as e:
+    print(f'DB load failed: {e}', file=sys.stderr)
+    sys.exit(1)
+" 2>/dev/null
+}
+
+# Determine SMB_MOUNTS: try database first, then .env
+MOUNTS_TO_PROCESS=""
+if [ -n "${SMB_HOST:-}" ]; then
+    if DB_MOUNTS=$(load_smb_mounts_from_db) && [ -n "$DB_MOUNTS" ]; then
+        printf '[smb-mount] Loaded SMB mounts from database\n'
+        MOUNTS_TO_PROCESS="$DB_MOUNTS"
+    elif [ -n "${SMB_MOUNTS:-}" ]; then
+        printf '[smb-mount] Using SMB_MOUNTS from .env\n'
+        MOUNTS_TO_PROCESS=$(printf '%s' "$SMB_MOUNTS" | tr ',' '\n')
+    else
+        printf '[smb-mount] No SMB mounts configured (neither in DB nor .env); skipping mounts\n'
+    fi
+fi
+
+if [ -n "$MOUNTS_TO_PROCESS" ]; then
     case "$SHARE_MOUNT_ROOT" in
         /*) ;;
         *) fail "SHARE_MOUNT_ROOT must be an absolute path" ;;
     esac
 
     [ -n "${SMB_HOST:-}" ] || fail "SMB_HOST is required"
-    # SMB_CREDENTIALS_FILE is optional now if per-share credentials are provided
-    [ -n "${SMB_MOUNTS:-}" ] || fail "SMB_MOUNTS is required (comma-separated slug=share entries)"
 
     case "$SMB_HOST" in
         *[!A-Za-z0-9._:-]*) fail "SMB_HOST contains unsupported characters" ;;
@@ -38,19 +96,16 @@ if [ -n "${SMB_HOST:-}" ] || [ -n "${SMB_MOUNTS:-}" ]; then
 
     set -f
     mount_count=0
-    for mount_spec in $(printf '%s' "$SMB_MOUNTS" | tr ',' ' '); do
-        # Parse mount_spec: slug=share[:username:password:domain]
+    while IFS= read -r mount_spec || [ -n "$mount_spec" ]; do
         case "$mount_spec" in
             *=*) slug=${mount_spec%%=*}; rest=${mount_spec#*=} ;;
             *) fail "Invalid SMB_MOUNTS entry '$mount_spec'; expected slug=share[:username:password:domain]" ;;
         esac
         [ -n "$slug" ] && [ -n "$rest" ] || fail "Invalid empty slug or share in SMB_MOUNTS"
         case "$slug" in
-            *[!A-Za-z0-9._-]*|.|..) fail "Invalid mount slug '$slug'" ;;
+            ''|.|..|*/*|*\\*|*:*|*,*) fail "Invalid mount slug '$slug'" ;;
         esac
 
-        # Parse share and optional credentials from rest
-        # rest format: share OR share:username:password:domain
         if printf '%s' "$rest" | grep -q ':'; then
             share=$(printf '%s' "$rest" | cut -d: -f1)
             mount_user=$(printf '%s' "$rest" | cut -d: -f2)
@@ -63,8 +118,8 @@ if [ -n "${SMB_HOST:-}" ] || [ -n "${SMB_MOUNTS:-}" ]; then
             mount_domain=""
         fi
 
-        printf '%s' "$share" | grep -Eq '^[A-Za-z0-9._$-]+$' \
-            || fail "Invalid SMB share name in mount entry '$slug'; use letters, digits, dot, underscore, dollar, or hyphen"
+        printf '%s' "$share" | grep -Eq '^[A-Za-z0-9 ._$-]+$' \
+            || fail "Invalid SMB share name in mount entry '$slug'; use letters, digits, spaces, dot, underscore, dollar, or hyphen"
         mount_count=$((mount_count + 1))
 
         mount_path="$SHARE_MOUNT_ROOT/$slug"
@@ -74,10 +129,8 @@ if [ -n "${SMB_HOST:-}" ] || [ -n "${SMB_MOUNTS:-}" ]; then
             continue
         fi
 
-        # Determine credentials file to use
         cred_file=""
         if [ -n "$mount_user" ] && [ -n "$mount_pass" ]; then
-            # Create temporary credentials file for this share
             cred_file="/tmp/smb_cred_${slug}"
             printf 'username=%s\npassword=%s\n' "$mount_user" "$mount_pass" > "$cred_file"
             if [ -n "$mount_domain" ]; then
@@ -95,23 +148,30 @@ if [ -n "${SMB_HOST:-}" ] || [ -n "${SMB_MOUNTS:-}" ]; then
         printf '[smb-mount] Mounting //%s/%s at %s (read-only)\n' "$SMB_HOST" "$share" "$mount_path"
         if ! mount -t cifs "//$SMB_HOST/$share" "$mount_path" \
             -o "credentials=$cred_file,vers=3.0,ro,sec=ntlmssp,uid=$APP_UID,gid=$APP_GID,nosuid,nodev"; then
-            # Clean up temp cred file on failure
             if [ -n "$mount_user" ] && [ -f "$cred_file" ]; then
                 rm -f "$cred_file"
             fi
-            fail "Mount failed for configured share '$slug' (share=$share); Django will not start"
+            printf '[smb-mount] WARNING: Mount failed for configured share %s; continuing without it\n' "$slug" >&2
+            continue
         fi
 
-        # Clean up temp cred file after successful mount
         if [ -n "$mount_user" ] && [ -f "$cred_file" ]; then
             rm -f "$cred_file"
         fi
-    done
+    done <<EOF
+$MOUNTS_TO_PROCESS
+EOF
 
     [ "$mount_count" -gt 0 ] || fail "SMB_MOUNTS contains no valid share entries"
 else
     printf '[smb-mount] SMB is not configured; skipping mounts\n'
 fi
+
+printf '[django] Applying database migrations\n'
+if ! setpriv --no-new-privs --bounding-set=-all --inh-caps=-all --ambient-caps=-all --reuid "$APP_UID" --regid "$APP_GID" --init-groups python manage.py migrate --noinput; then
+    fail "database migrations failed; Django will not start"
+fi
+
 printf '[static] Collecting static files\n'
 if ! setpriv --no-new-privs --bounding-set=-all --inh-caps=-all --ambient-caps=-all --reuid "$APP_UID" --regid "$APP_GID" --init-groups python manage.py collectstatic --noinput; then
     fail "collectstatic failed; Django will not start"

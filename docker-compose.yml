@@ -20,11 +20,19 @@ services:
       - SYS_ADMIN
     ports:
       - "8010:8000"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz/', timeout=3).read()"]
+      interval: 15s
+      timeout: 5s
+      retries: 4
+      start_period: 90s
     depends_on:
       portal-db:
         condition: service_healthy
     volumes:
       - schoolportal_static_volume:/app/staticfiles
+      - schoolportal_thumbnail_cache:/app/thumbnail_cache
     networks:
       - schoolportal_network
 
@@ -50,6 +58,8 @@ volumes:
     name: schoolportal_postgres_data
   schoolportal_static_volume:
     name: schoolportal_static_volume
+  schoolportal_thumbnail_cache:
+    name: schoolportal_thumbnail_cache
 
 networks:
   schoolportal_network:

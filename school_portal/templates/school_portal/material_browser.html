@@ -1,52 +1,117 @@
+{% load static %}
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="ar" dir="rtl" data-materials-view="{{ view_mode }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ resource_name }}</title>
-    <style>
-        * { box-sizing: border-box; }
-        body { margin: 0; font-family: "Tahoma", "Segoe UI", sans-serif; background: #f5f8fc; color: #14233b; }
-        .page { max-width: 1120px; margin: 0 auto; padding: 28px 18px 56px; }
-        .topbar { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 20px 24px; margin-bottom: 20px; color: #fff; background: linear-gradient(120deg, #123a78, #1762b6); border-radius: 16px; }
-        .topbar h1 { margin: 0; font-size: 1.45rem; }
-        .topbar a { color: #fff; font-weight: 700; text-decoration: none; }
-        .panel { padding: 22px; background: #fff; border: 1px solid #e2eaf4; border-radius: 16px; box-shadow: 0 8px 24px rgba(20, 45, 82, .06); }
-        .path { margin: 0 0 16px; color: #64748b; overflow-wrap: anywhere; }
-        .item { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 14px 4px; border-bottom: 1px solid #edf1f6; }
-        .item:last-child { border-bottom: 0; }
-        .item a { color: #164f9d; text-decoration: none; font-weight: 700; overflow-wrap: anywhere; }
-        .kind { color: #64748b; font-size: .9rem; }
-        .empty { padding: 20px 4px; color: #64748b; }
-        @media (max-width: 600px) { .topbar { align-items: flex-start; flex-direction: column; } .panel { padding: 16px; } }
-    </style>
+    <link rel="stylesheet" href="{% static 'school_portal/material_browser.css' %}">
+    <script defer src="{% static 'school_portal/material_browser.js' %}"></script>
 </head>
 <body>
-    <main class="page">
-        <header class="topbar">
-            <h1>{{ resource_name }}</h1>
-            <nav><a href="{% url 'dashboard' %}">العودة للمواد</a> &nbsp;|&nbsp; <a href="{% url 'logout' %}">تسجيل الخروج</a></nav>
+    <svg class="icon-sprite" aria-hidden="true" focusable="false">
+        <symbol id="icon-folder" viewBox="0 0 64 64"><path d="M5 18a7 7 0 0 1 7-7h16l6 7h18a7 7 0 0 1 7 7v25a7 7 0 0 1-7 7H12a7 7 0 0 1-7-7Z"/><path d="M5 25h54"/></symbol>
+        <symbol id="icon-video" viewBox="0 0 64 64"><rect x="6" y="12" width="52" height="40" rx="5"/><path d="m28 24 14 8-14 8Z"/></symbol>
+        <symbol id="icon-pdf" viewBox="0 0 64 64"><path d="M16 5h25l10 10v44H16Z"/><path d="M41 5v11h10M22 41h20M22 33h20M22 49h12"/></symbol>
+        <symbol id="icon-presentation" viewBox="0 0 64 64"><rect x="7" y="9" width="50" height="36" rx="4"/><path d="M25 57h14M32 45v12M18 20h28M18 28h18"/></symbol>
+        <symbol id="icon-document" viewBox="0 0 64 64"><path d="M16 5h25l10 10v44H16Z"/><path d="M41 5v11h10M23 29h18M23 38h18M23 47h12"/></symbol>
+        <symbol id="icon-spreadsheet" viewBox="0 0 64 64"><path d="M16 5h25l10 10v44H16Z"/><path d="M41 5v11h10M22 27h22v22H22ZM33 27v22M22 38h22"/></symbol>
+        <symbol id="icon-image" viewBox="0 0 64 64"><rect x="7" y="10" width="50" height="44" rx="5"/><circle cx="23" cy="25" r="5"/><path d="m12 47 14-13 9 8 7-6 10 11"/></symbol>
+        <symbol id="icon-generic" viewBox="0 0 64 64"><path d="M16 5h25l10 10v44H16Z"/><path d="M41 5v11h10"/></symbol>
+    </svg>
+    <main class="materials-page">
+        <header class="materials-header">
+            <div>
+                <p class="eyebrow">مستعرض المواد التعليمية</p>
+                <h1>{{ resource_name }}</h1>
+            </div>
+            <nav aria-label="التنقل العام">
+                <a href="{% url 'dashboard' %}">العودة للمواد</a>
+            </nav>
         </header>
-        <section class="panel">
-            <p class="path">{% if current_path %}{{ current_path }}{% else %}المجلد الرئيسي{% endif %}</p>
-            {% if not is_root %}
-                <div class="item"><a href="?root={{ root_index }}&amp;path={{ parent_path|urlencode }}">↰ المجلد السابق</a></div>
-            {% endif %}
-            {% for entry in entries %}
-                <div class="item">
-                    <span>
-                        {% if entry.is_dir %}
-                            <a href="?root={{ root_index }}&amp;path={{ entry.relative_path|urlencode }}">📁 {{ entry.name }}</a>
-                        {% else %}
-                            <a href="{% url 'material_download' %}?root={{ root_index }}&amp;path={{ entry.relative_path|urlencode }}">📄 {{ entry.name }}</a>
-                        {% endif %}
-                    </span>
-                    <span class="kind">{% if entry.is_dir %}مجلد{% else %}{{ entry.mime }}{% endif %}</span>
+
+        <button class="panel-toggle" type="button" aria-expanded="true" aria-controls="materials-panel">لوحة الأدوات</button>
+        <div class="materials-layout">
+        <aside id="materials-panel" class="materials-panel" aria-label="لوحة الأدوات">
+            <label class="search-label" for="material-search">بحث بالاسم</label>
+            <div class="search-box"><input id="material-search" type="search" autocomplete="off"><button type="button" data-clear-search aria-label="مسح البحث">×</button></div>
+            <div class="type-filters" aria-label="تصفية حسب النوع">
+                <button type="button" data-filter-kind="all" aria-pressed="true">الكل</button>
+                <button type="button" data-filter-kind="video">فيديو</button><button type="button" data-filter-kind="pdf">PDF</button>
+                <button type="button" data-filter-kind="presentation">عروض</button><button type="button" data-filter-kind="image">صور</button>
+            </div>
+            <p class="result-count" aria-live="polite"></p>
+            <section class="favorites"><h2>المفضلة</h2>
+                {% for favorite in favorites %}
+                    {% if favorite.is_directory %}<a data-material-link href="?root={{ favorite.root_index }}&amp;path={{ favorite.relative_path|urlencode }}&amp;view={{ view_mode }}">{{ favorite.name }}</a>
+                    {% else %}<a href="{% url 'material_download' %}?root={{ favorite.root_index }}&amp;path={{ favorite.relative_path|urlencode }}">{{ favorite.name }}</a>{% endif %}
+                {% empty %}<p>لا توجد عناصر مفضلة.</p>{% endfor %}
+            </section>
+            <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button class="logout-button" type="submit">تسجيل الخروج</button></form>
+        </aside>
+        <section class="materials-surface" aria-label="{{ resource_name }}">
+            <nav class="material-navigation" aria-label="تنقل المجلدات">
+                <button type="button" data-material-back>رجوع</button>
+                {% if is_root %}<button type="button" disabled>أعلى</button>{% else %}<a data-material-link href="?root={{ root_index }}&amp;path={{ parent_path|urlencode }}&amp;view={{ view_mode }}">أعلى</a>{% endif %}
+                <a href="{% url 'dashboard' %}">الرئيسية</a>
+                <span class="breadcrumb"><a data-material-link href="?root={{ root_index }}&amp;view={{ view_mode }}">{{ resource_name }}</a>{% for crumb in breadcrumbs %}<span>/</span><a data-material-link href="?root={{ root_index }}&amp;path={{ crumb.path|urlencode }}&amp;view={{ view_mode }}">{{ crumb.name }}</a>{% endfor %}</span>
+            </nav>
+            <div class="materials-pathbar">
+                <p class="path">{% if current_path %}{{ current_path }}{% else %}المجلد الرئيسي{% endif %}</p>
+                {% if not is_root %}
+                    <a class="parent-link" data-material-link href="?root={{ root_index }}&amp;path={{ parent_path|urlencode }}&amp;view={{ view_mode }}">المجلد السابق</a>
+                {% endif %}
+            </div>
+
+            <div class="view-toolbar" role="toolbar" aria-label="طرق عرض الملفات">
+                <span class="toolbar-label">عرض</span>
+                <div class="view-modes">
+                    <button type="button" data-view-mode="extra-large" title="Extra large icons" aria-label="Extra large icons" aria-pressed="{% if view_mode == 'extra-large' %}true{% else %}false{% endif %}">أيقونات كبيرة جداً</button>
+                    <button type="button" data-view-mode="large" title="Large icons" aria-label="Large icons" aria-pressed="{% if view_mode == 'large' %}true{% else %}false{% endif %}">أيقونات كبيرة</button>
+                    <button type="button" data-view-mode="medium" title="Medium icons" aria-label="Medium icons" aria-pressed="{% if view_mode == 'medium' %}true{% else %}false{% endif %}">أيقونات متوسطة</button>
+                    <button type="button" data-view-mode="small" title="Small icons" aria-label="Small icons" aria-pressed="{% if view_mode == 'small' %}true{% else %}false{% endif %}">أيقونات صغيرة</button>
+                    <button type="button" data-view-mode="list" title="List" aria-label="List" aria-pressed="{% if view_mode == 'list' %}true{% else %}false{% endif %}">قائمة</button>
+                    <button type="button" data-view-mode="details" title="Details" aria-label="Details" aria-pressed="{% if view_mode == 'details' %}true{% else %}false{% endif %}">تفاصيل</button>
+                    <button type="button" data-view-mode="tiles" title="Tiles" aria-label="Tiles" aria-pressed="{% if view_mode == 'tiles' %}true{% else %}false{% endif %}">مربعات</button>
+                    <button type="button" data-view-mode="content" title="Content" aria-label="Content" aria-pressed="{% if view_mode == 'content' %}true{% else %}false{% endif %}">محتوى</button>
                 </div>
-            {% empty %}
+            </div>
+
+            {% if entries %}
+                <div class="details-head" role="row" aria-label="رؤوس جدول التفاصيل">
+                    <button type="button" data-sort-key="name">الاسم</button>
+                    <button type="button" data-sort-key="kind">النوع</button>
+                    <button type="button" data-sort-key="size">الحجم</button>
+                    <button type="button" data-sort-key="modified">تاريخ التعديل</button>
+                </div>
+                <div class="materials-browser view-{{ view_mode }}" role="table" aria-label="قائمة الملفات والمجلدات">
+                    <div class="materials-items">
+                        {% for entry in entries %}
+                            {% if entry.is_directory %}
+                                <a class="material-item kind-{{ entry.kind }}" data-material-link data-name="{{ entry.name }}" data-kind="{{ entry.kind_label }}" data-size="{{ entry.size_bytes|default_if_none:'' }}" data-modified="{{ entry.modified_timestamp }}" data-folder="1" href="?root={{ root_index }}&amp;path={{ entry.relative_path|urlencode }}&amp;view={{ view_mode }}" role="row">
+                            {% else %}
+                                <a class="material-item kind-{{ entry.kind }}" data-name="{{ entry.name }}" data-kind="{{ entry.kind_label }}" data-size="{{ entry.size_bytes|default_if_none:'' }}" data-modified="{{ entry.modified_timestamp }}" data-folder="0" href="{% url 'material_download' %}?root={{ root_index }}&amp;path={{ entry.relative_path|urlencode }}" role="row">
+                            {% endif %}
+                                <span class="favorite-control"><button type="button" class="favorite-toggle" data-favorite data-root="{{ root_index }}" data-path="{{ entry.relative_path }}" aria-pressed="{% if entry.is_favorite %}true{% else %}false{% endif %}">★</button></span>
+                                <span class="thumbnail" data-thumbnail data-root="{{ root_index }}" data-path="{{ entry.relative_path }}" data-kind="{{ entry.kind }}"><svg class="file-icon" aria-hidden="true" focusable="false"><use href="#icon-{{ entry.icon_kind }}"></use></svg></span>
+                                <span class="item-copy">
+                                    <strong class="item-name">{{ entry.name }}</strong>
+                                    <span class="item-type">{{ entry.kind_label }}</span>
+                                    <span class="item-size">{{ entry.size }}</span>
+                                    <time class="item-modified">{{ entry.modified }}</time>
+                                </span>
+                            </a>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% else %}
                 <div class="empty">لا توجد ملفات أو مجلدات في هذا المسار.</div>
-            {% endfor %}
+            {% endif %}
         </section>
+        </div>
     </main>
+    <div class="idle-modal" hidden role="dialog" aria-modal="true" aria-live="assertive"><p>سيتم تسجيل الخروج خلال <strong data-idle-countdown></strong> ثانية.</p><button type="button" data-stay-signed-in>البقاء مسجلاً</button></div>
+    <form id="csrf-form" hidden>{% csrf_token %}</form>
+    <script>window.materialsConfig={idleSeconds:{{ idle_seconds }},favoriteUrl:"{% url 'material_favorite' %}",keepAliveUrl:"{% url 'materials_keep_alive' %}",thumbnailUrl:"{% url 'material_thumbnail' %}",loginUrl:"{% url 'login' %}"};</script>
 </body>
 </html>
